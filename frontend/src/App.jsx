@@ -24,7 +24,26 @@ export default function App() {
   const [tests, setTests] = useState([]);
   const [users, setUsers] = useState([]);
 
-  const [tab, setTab] = useState("dashboard");
+  const TABS_VALIDOS = ["dashboard", "banco", "specs", "armar", "importar", "usuarios"];
+  const leerTabDesdeHash = () => {
+    const h = window.location.hash.replace("#", "");
+    return TABS_VALIDOS.includes(h) ? h : "dashboard";
+  };
+
+  const [tab, setTabInterno] = useState(leerTabDesdeHash);
+  // Envuelve el setter original para que cada cambio de pestaña quede
+  // reflejado en la URL (ej. .../#specs). Así, recargar la página o usar
+  // los botones atrás/adelante del navegador mantiene la sección correcta.
+  const setTab = useCallback((id) => {
+    setTabInterno(id);
+    if (window.location.hash !== `#${id}`) window.location.hash = id;
+  }, []);
+
+  useEffect(() => {
+    const onHashChange = () => setTabInterno(leerTabDesdeHash());
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
   const [editingItem, setEditingItem] = useState(null);
   const [reviewingItem, setReviewingItem] = useState(null);
   const [previewTest, setPreviewTest] = useState(null);
@@ -33,6 +52,15 @@ export default function App() {
   const isRevisor = currentUser?.rol === "revisor";
   const isAdmin = currentUser?.rol === "administrador";
   const esTecnico = isRevisor || isAdmin;
+
+  // Si la pestaña restaurada desde la URL no está disponible para este rol
+  // (ej. alguien comparte un enlace a "#usuarios" con un elaborador), vuelve
+  // al panel general en lugar de dejar la pantalla en blanco.
+  useEffect(() => {
+    if (!currentUser) return;
+    if (tab === "armar" && !esTecnico) setTab("dashboard");
+    if ((tab === "importar" || tab === "usuarios") && !isAdmin) setTab("dashboard");
+  }, [currentUser, tab, esTecnico, isAdmin, setTab]);
 
   const flashSaved = (msg) => {
     setSavingNote(msg);
