@@ -42,6 +42,8 @@ export const api = {
     return d.user;
   }),
   me: () => request("/auth/me").then((d) => d.user),
+  changeMyPassword: (passwordActual, passwordNueva) =>
+    request("/auth/change-password", { method: "POST", body: { passwordActual, passwordNueva } }),
 
   // --- usuarios (admin) ---
   listUsers: () => request("/users").then((d) => d.users),

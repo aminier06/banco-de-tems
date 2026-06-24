@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { LayoutDashboard, Library, ClipboardList, FileText, Users, UploadCloud, LogOut, Check } from "lucide-react";
+import { LayoutDashboard, Library, ClipboardList, FileText, Users, UploadCloud, LogOut, Check, KeyRound } from "lucide-react";
 import { api } from "./api.js";
 import { areaInfo, ROL_LABELS } from "./lib/constants.js";
 import { GlobalStyles } from "./components/shared.jsx";
@@ -13,6 +13,7 @@ import ArmarPrueba from "./components/ArmarPrueba.jsx";
 import TestPreviewModal from "./components/TestPreviewModal.jsx";
 import UsuariosAdmin from "./components/UsuariosAdmin.jsx";
 import ImportarItems from "./components/ImportarItems.jsx";
+import CambiarPasswordModal from "./components/CambiarPasswordModal.jsx";
 
 export default function App() {
   const [cargandoSesion, setCargandoSesion] = useState(true);
@@ -47,6 +48,7 @@ export default function App() {
   const [editingItem, setEditingItem] = useState(null);
   const [reviewingItem, setReviewingItem] = useState(null);
   const [previewTest, setPreviewTest] = useState(null);
+  const [mostrarCambioPassword, setMostrarCambioPassword] = useState(false);
   const [savingNote, setSavingNote] = useState("");
 
   const isRevisor = currentUser?.rol === "revisor";
@@ -198,7 +200,8 @@ export default function App() {
     await api.deleteUser(id);
     await recargarTodo();
   };
-  const restablecerPassword = async (id) => api.resetPassword(id);
+  const restablecerPassword = async (id, password) => api.resetPassword(id, password);
+  const cambiarMiPassword = async (actual, nueva) => api.changeMyPassword(actual, nueva);
 
   /* ---------- importación ---------- */
   const importarItems = async (payload, nombreArchivo) => {
@@ -260,6 +263,9 @@ export default function App() {
           {currentUser.area && (
             <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", marginBottom: 8 }}>Área asignada: {areaInfo(currentUser.area)?.nombre}</div>
           )}
+          <button className="bib-btn bib-btn-ghost" style={{ width: "100%", justifyContent: "center", color: "#fff", borderColor: "rgba(255,255,255,0.25)", marginBottom: 6 }} onClick={() => setMostrarCambioPassword(true)}>
+            <KeyRound size={13} /> Cambiar mi contraseña
+          </button>
           <button className="bib-btn bib-btn-ghost" style={{ width: "100%", justifyContent: "center", color: "#fff", borderColor: "rgba(255,255,255,0.25)" }} onClick={logout}>
             <LogOut size={13} /> Cerrar sesión
           </button>
@@ -325,6 +331,10 @@ export default function App() {
       {reviewingItem && <RevisionModal item={reviewingItem} onClose={() => setReviewingItem(null)} onDecidir={decidirRevision} />}
 
       {previewTest && <TestPreviewModal test={previewTest} items={items} onClose={() => setPreviewTest(null)} />}
+
+      {mostrarCambioPassword && (
+        <CambiarPasswordModal onClose={() => setMostrarCambioPassword(false)} onCambiar={cambiarMiPassword} />
+      )}
     </div>
   );
 }

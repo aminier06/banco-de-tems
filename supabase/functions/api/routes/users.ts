@@ -72,6 +72,9 @@ usersRoutes.post("/:id/reset-password", async (c) => {
   const id = c.req.param("id");
   if (!(await Users.findById(id))) return c.json({ error: "Usuario no encontrado." }, 404);
   const body = await c.req.json().catch(() => ({}));
+  if (body.password && body.password.length < 4) {
+    return c.json({ error: "La contraseña debe tener al menos 4 caracteres." }, 400);
+  }
   const nueva = body.password || generarPasswordTemporal();
   const passwordHash = await bcrypt.hash(nueva, 10);
   await Users.updatePassword(id, passwordHash);
