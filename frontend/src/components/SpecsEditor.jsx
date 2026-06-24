@@ -3,8 +3,6 @@ import { Plus, Trash2, Save } from "lucide-react";
 import { AREAS } from "../lib/constants.js";
 import { Banner } from "./shared.jsx";
 
-// Aplana la jerarquía Afirmación → Evidencia → Tarea en filas de tabla,
-// calculando cuántas filas debe abarcar (rowSpan) cada celda combinada.
 function construirFilas(afirmaciones) {
   const filas = [];
   afirmaciones.forEach((af) => {
@@ -86,7 +84,7 @@ export default function SpecsEditor({ specs, puedeEditar, onSave }) {
   };
   const agregarAfirmacion = () => {
     const n = afirmaciones.length + 1;
-    setDraft({ ...draft, afirmaciones: [...afirmaciones, { id: `A${n}`, texto: "Nueva afirmación", peso: 0, evidencias: [] }] });
+    setDraft({ ...draft, afirmaciones: [...afirmaciones, { id: `A${n}`, texto: "Nueva afirmacion", peso: 0, evidencias: [] }] });
   };
   const eliminarAfirmacion = (id) => setDraft({ ...draft, afirmaciones: afirmaciones.filter((a) => a.id !== id) });
   const agregarEvidencia = (afId) => {
@@ -156,7 +154,7 @@ export default function SpecsEditor({ specs, puedeEditar, onSave }) {
     <div>
       <h1 className="f-display" style={{ fontSize: 24, marginBottom: 2 }}>Especificaciones de la prueba</h1>
       <p style={{ color: "var(--ink-soft)", fontSize: 13.5, marginBottom: 16 }}>
-        Dominio del área → Afirmación → Evidencia → Tarea. De la Tarea surgen los ítems del banco.
+        {"Dominio del area -> Afirmacion -> Evidencia -> Tarea. De la Tarea surgen los items del banco."}
       </p>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
@@ -167,10 +165,10 @@ export default function SpecsEditor({ specs, puedeEditar, onSave }) {
         ))}
       </div>
 
-      {!puedeEditar && <Banner tone="amber">Solo el equipo técnico de evaluación y el administrador pueden editar las especificaciones. Puedes consultarlas en modo lectura.</Banner>}
+      {!puedeEditar && <Banner tone="amber">Solo el equipo tecnico de evaluacion y el administrador pueden editar las especificaciones. Puedes consultarlas en modo lectura.</Banner>}
 
       <div style={{ marginTop: 14, marginBottom: 10, display: "flex", alignItems: "center", gap: 10 }}>
-        <span className="code-pill">Suma de pesos por afirmación: {totalAfirmaciones}%</span>
+        <span className="code-pill">Suma de pesos por afirmacion: {totalAfirmaciones}%</span>
         {totalAfirmaciones !== 100 && afirmaciones.length > 0 && <span style={{ color: "var(--red)", fontSize: 12 }}>Debe sumar 100%.</span>}
       </div>
 
@@ -190,12 +188,22 @@ export default function SpecsEditor({ specs, puedeEditar, onSave }) {
             </tr>
             <tr>
               <th colSpan={6} style={{ ...thStyle, background: "#fff", color: "var(--ink)", border: "1px solid var(--navy)" }}>
-                {draft.nombre || AREAS.find((a) => a.id === areaId)?.nombre || areaId}
+                {puedeEditar ? (
+                  <input
+                    className="bib-input"
+                    style={{ textAlign: "center", fontFamily: "'PT Serif', serif", fontWeight: 700, fontSize: 14, border: "none", background: "transparent" }}
+                    value={draft.nombre || ""}
+                    placeholder={`Nombre de la competencia para ${AREAS.find((a) => a.id === areaId)?.nombre || areaId}`}
+                    onChange={(e) => setDraft({ ...draft, nombre: e.target.value })}
+                  />
+                ) : (
+                  draft.nombre || AREAS.find((a) => a.id === areaId)?.nombre || areaId
+                )}
               </th>
             </tr>
             <tr>
-              <th style={thStyle}>Afirmación</th>
-              <th style={thStyle}>% de preguntas por afirmación</th>
+              <th style={thStyle}>Afirmacion</th>
+              <th style={thStyle}>% de preguntas por afirmacion</th>
               <th style={thStyle}>Evidencia</th>
               <th style={thStyle}>% de preguntas por evidencia</th>
               <th style={thStyle}>Tarea</th>
@@ -206,7 +214,7 @@ export default function SpecsEditor({ specs, puedeEditar, onSave }) {
             {filas.length === 0 && (
               <tr>
                 <td colSpan={6} style={{ ...tdStyle, textAlign: "center", color: "var(--ink-soft)", padding: 20 }}>
-                  Esta área aún no tiene afirmaciones configuradas.
+                  Esta area aun no tiene afirmaciones configuradas.
                 </td>
               </tr>
             )}
@@ -303,7 +311,7 @@ export default function SpecsEditor({ specs, puedeEditar, onSave }) {
                     </>
                   ) : (
                     <td style={{ ...tdStyle, textAlign: "center", color: "var(--ink-soft)", fontSize: 12 }} colSpan={2}>
-                      Sin evidencias todavía.
+                      Sin evidencias todavia.
                     </td>
                   )}
 
@@ -340,7 +348,7 @@ export default function SpecsEditor({ specs, puedeEditar, onSave }) {
                     </>
                   ) : (
                     <td style={{ ...tdStyle, textAlign: "center", color: "var(--ink-soft)", fontSize: 12 }} colSpan={2}>
-                      {fila.ev ? "Sin tareas todavía." : ""}
+                      {fila.ev ? "Sin tareas todavia." : ""}
                     </td>
                   )}
                 </tr>
@@ -355,10 +363,10 @@ export default function SpecsEditor({ specs, puedeEditar, onSave }) {
       {puedeEditar && (
         <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
           <button className="bib-btn bib-btn-ghost" onClick={agregarAfirmacion}>
-            <Plus size={14} /> Añadir afirmación
+            <Plus size={14} /> Anadir afirmacion
           </button>
           <button className="bib-btn bib-btn-primary" disabled={guardando} onClick={guardar}>
-            <Save size={14} /> {guardando ? "Guardando…" : "Guardar especificaciones"}
+            <Save size={14} /> {guardando ? "Guardando..." : "Guardar especificaciones"}
           </button>
         </div>
       )}
