@@ -1,4 +1,5 @@
 import { sql } from "../db.ts";
+import { parseJsonb } from "../jsonb.ts";
 
 function mapRow(row: any) {
   if (!row) return null;
@@ -9,7 +10,7 @@ function mapRow(row: any) {
     grado: row.grado,
     convocatoria: row.convocatoria,
     totalItems: row.total_items,
-    itemIds: row.item_ids, // jsonb -> ya viene como array de JS
+    itemIds: parseJsonb(row.item_ids),
     creadoPorId: row.creado_por_id,
     createdAt: row.created_at,
   };

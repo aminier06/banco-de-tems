@@ -1,4 +1,5 @@
 import { sql } from "../db.ts";
+import { parseJsonb } from "../jsonb.ts";
 
 function mapRow(row: any) {
   if (!row) return null;
@@ -11,12 +12,12 @@ function mapRow(row: any) {
     dificultad: row.dificultad,
     contexto: row.contexto,
     enunciado: row.enunciado,
-    opciones: row.opciones, // jsonb -> ya viene como array de JS
+    opciones: parseJsonb(row.opciones),
     respuestaCorrecta: row.respuesta_correcta,
     justificacionCorrecta: row.justificacion_correcta,
     justificacionDistractores: row.justificacion_distractores,
     estado: row.estado,
-    historial: row.historial, // jsonb -> ya viene como array de JS
+    historial: parseJsonb(row.historial),
     autorId: row.autor_id,
     autorNombre: row.autor_nombre || null,
     createdAt: row.created_at,

@@ -1,9 +1,9 @@
 import { sql } from "../db.ts";
+import { parseJsonb } from "../jsonb.ts";
 
 function mapRow(row: any) {
   if (!row) return null;
-  // row.data ya llega como objeto JS (postgres.js parsea jsonb automáticamente).
-  return { area: row.area, nombre: row.nombre, ...row.data };
+  return { area: row.area, nombre: row.nombre, ...parseJsonb(row.data) };
 }
 
 export const Specs = {
