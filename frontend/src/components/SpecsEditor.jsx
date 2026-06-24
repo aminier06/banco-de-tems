@@ -3,6 +3,47 @@ import { Plus, Trash2, Save } from "lucide-react";
 import { AREAS } from "../lib/constants.js";
 import { Banner } from "./shared.jsx";
 
+// Aplana la jerarquía Afirmación → Evidencia → Tarea en filas de tabla,
+// calculando cuántas filas debe abarcar (rowSpan) cada celda combinada.
+function construirFilas(afirmaciones) {
+  const filas = [];
+  afirmaciones.forEach((af) => {
+    const evidencias = af.evidencias && af.evidencias.length > 0 ? af.evidencias : [null];
+    const afRowSpan = evidencias.reduce((acc, ev) => {
+      const tareas = ev && ev.tareas && ev.tareas.length > 0 ? ev.tareas : [null];
+      return acc + tareas.length;
+    }, 0);
+    let afRendido = false;
+    evidencias.forEach((ev) => {
+      const tareas = ev && ev.tareas && ev.tareas.length > 0 ? ev.tareas : [null];
+      let evRendido = false;
+      tareas.forEach((t) => {
+        filas.push({ af, mostrarAf: !afRendido, afRowSpan, ev, mostrarEv: !evRendido, evRowSpan: tareas.length, t });
+        afRendido = true;
+        evRendido = true;
+      });
+    });
+  });
+  return filas;
+}
+
+const thStyle = {
+  background: "var(--navy)",
+  color: "#fff",
+  fontFamily: "'PT Serif', serif",
+  fontWeight: 700,
+  fontSize: 13,
+  padding: "8px 10px",
+  border: "1px solid var(--navy)",
+  textAlign: "center",
+};
+const tdStyle = {
+  border: "1px solid var(--rule)",
+  padding: "8px",
+  verticalAlign: "top",
+  background: "#fff",
+};
+
 export default function SpecsEditor({ specs, puedeEditar, onSave }) {
   const [areaId, setAreaId] = useState("lengua");
   const [draft, setDraft] = useState(specs[areaId] || { afirmaciones: [], tiposTexto: [] });
@@ -14,36 +55,86 @@ export default function SpecsEditor({ specs, puedeEditar, onSave }) {
     setError("");
   }, [areaId, specs]);
 
-  const totalAfirmaciones = draft.afirmaciones.reduce((s, a) => s + Number(a.peso || 0), 0);
+  const afirmaciones = draft.afirmaciones || [];
+  const totalAfirmaciones = afirmaciones.reduce((s, a) => s + Number(a.peso || 0), 0);
 
   const actualizarAfirmacion = (id, patch) => {
-    setDraft({ ...draft, afirmaciones: draft.afirmaciones.map((a) => (a.id === id ? { ...a, ...patch } : a)) });
+    setDraft({ ...draft, afirmaciones: afirmaciones.map((a) => (a.id === id ? { ...a, ...patch } : a)) });
   };
   const actualizarEvidencia = (afId, evId, patch) => {
     setDraft({
       ...draft,
-      afirmaciones: draft.afirmaciones.map((a) =>
-        a.id === afId ? { ...a, evidencias: a.evidencias.map((ev) => (ev.id === evId ? { ...ev, ...patch } : ev)) } : a
+      afirmaciones: afirmaciones.map((a) =>
+        a.id === afId ? { ...a, evidencias: (a.evidencias || []).map((ev) => (ev.id === evId ? { ...ev, ...patch } : ev)) } : a
+      ),
+    });
+  };
+  const actualizarTarea = (afId, evId, tareaId, patch) => {
+    setDraft({
+      ...draft,
+      afirmaciones: afirmaciones.map((a) =>
+        a.id !== afId
+          ? a
+          : {
+              ...a,
+              evidencias: (a.evidencias || []).map((ev) =>
+                ev.id !== evId ? ev : { ...ev, tareas: (ev.tareas || []).map((t) => (t.id === tareaId ? { ...t, ...patch } : t)) }
+              ),
+            }
       ),
     });
   };
   const agregarAfirmacion = () => {
-    const n = draft.afirmaciones.length + 1;
-    setDraft({ ...draft, afirmaciones: [...draft.afirmaciones, { id: `A${n}`, texto: "Nueva afirmación", peso: 0, evidencias: [] }] });
+    const n = afirmaciones.length + 1;
+    setDraft({ ...draft, afirmaciones: [...afirmaciones, { id: `A${n}`, texto: "Nueva afirmación", peso: 0, evidencias: [] }] });
   };
-  const eliminarAfirmacion = (id) => setDraft({ ...draft, afirmaciones: draft.afirmaciones.filter((a) => a.id !== id) });
+  const eliminarAfirmacion = (id) => setDraft({ ...draft, afirmaciones: afirmaciones.filter((a) => a.id !== id) });
   const agregarEvidencia = (afId) => {
     setDraft({
       ...draft,
-      afirmaciones: draft.afirmaciones.map((a) =>
-        a.id === afId ? { ...a, evidencias: [...a.evidencias, { id: `${afId}.${a.evidencias.length + 1}`, texto: "Nueva evidencia", peso: 0 }] } : a
+      afirmaciones: afirmaciones.map((a) =>
+        a.id === afId
+          ? { ...a, evidencias: [...(a.evidencias || []), { id: `${afId}.${(a.evidencias || []).length + 1}`, texto: "Nueva evidencia", peso: 0, tareas: [] }] }
+          : a
       ),
     });
   };
   const eliminarEvidencia = (afId, evId) => {
     setDraft({
       ...draft,
-      afirmaciones: draft.afirmaciones.map((a) => (a.id === afId ? { ...a, evidencias: a.evidencias.filter((ev) => ev.id !== evId) } : a)),
+      afirmaciones: afirmaciones.map((a) => (a.id === afId ? { ...a, evidencias: (a.evidencias || []).filter((ev) => ev.id !== evId) } : a)),
+    });
+  };
+  const agregarTarea = (afId, evId) => {
+    setDraft({
+      ...draft,
+      afirmaciones: afirmaciones.map((a) =>
+        a.id !== afId
+          ? a
+          : {
+              ...a,
+              evidencias: (a.evidencias || []).map((ev) =>
+                ev.id !== evId
+                  ? ev
+                  : { ...ev, tareas: [...(ev.tareas || []), { id: `${evId}.${(ev.tareas || []).length + 1}`, texto: "Nueva tarea", peso: 0 }] }
+              ),
+            }
+      ),
+    });
+  };
+  const eliminarTarea = (afId, evId, tareaId) => {
+    setDraft({
+      ...draft,
+      afirmaciones: afirmaciones.map((a) =>
+        a.id !== afId
+          ? a
+          : {
+              ...a,
+              evidencias: (a.evidencias || []).map((ev) =>
+                ev.id !== evId ? ev : { ...ev, tareas: (ev.tareas || []).filter((t) => t.id !== tareaId) }
+              ),
+            }
+      ),
     });
   };
 
@@ -51,7 +142,7 @@ export default function SpecsEditor({ specs, puedeEditar, onSave }) {
     setError("");
     setGuardando(true);
     try {
-      await onSave(areaId, { nombre: draft.nombre, afirmaciones: draft.afirmaciones, tiposTexto: draft.tiposTexto || [] });
+      await onSave(areaId, { nombre: draft.nombre, afirmaciones, tiposTexto: draft.tiposTexto || [] });
     } catch (err) {
       setError(err.message || "No se pudieron guardar las especificaciones.");
     } finally {
@@ -59,11 +150,13 @@ export default function SpecsEditor({ specs, puedeEditar, onSave }) {
     }
   };
 
+  const filas = construirFilas(afirmaciones);
+
   return (
     <div>
       <h1 className="f-display" style={{ fontSize: 24, marginBottom: 2 }}>Especificaciones de la prueba</h1>
       <p style={{ color: "var(--ink-soft)", fontSize: 13.5, marginBottom: 16 }}>
-        Tabla de afirmaciones, evidencias y pesos por área (diseño centrado en evidencias).
+        Dominio del área → Afirmación → Evidencia → Tarea. De la Tarea surgen los ítems del banco.
       </p>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
@@ -76,53 +169,185 @@ export default function SpecsEditor({ specs, puedeEditar, onSave }) {
 
       {!puedeEditar && <Banner tone="amber">Solo el equipo técnico de evaluación y el administrador pueden editar las especificaciones. Puedes consultarlas en modo lectura.</Banner>}
 
-      <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+      <div style={{ marginTop: 14, marginBottom: 10, display: "flex", alignItems: "center", gap: 10 }}>
         <span className="code-pill">Suma de pesos por afirmación: {totalAfirmaciones}%</span>
-        {totalAfirmaciones !== 100 && draft.afirmaciones.length > 0 && <span style={{ color: "var(--red)", fontSize: 12 }}>Debe sumar 100%.</span>}
+        {totalAfirmaciones !== 100 && afirmaciones.length > 0 && <span style={{ color: "var(--red)", fontSize: 12 }}>Debe sumar 100%.</span>}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {draft.afirmaciones.map((af) => {
-          const sumaEv = af.evidencias.reduce((s, e) => s + Number(e.peso || 0), 0);
-          return (
-            <div key={af.id} className="bib-card" style={{ padding: 14 }}>
-              <div style={{ display: "flex", gap: 8, marginBottom: 10, alignItems: "flex-start" }}>
-                <span className="code-pill" style={{ marginTop: 8 }}>{af.id}</span>
-                <input className="bib-input" disabled={!puedeEditar} value={af.texto} onChange={(e) => actualizarAfirmacion(af.id, { texto: e.target.value })} style={{ flex: 1 }} />
-                <input className="bib-input" disabled={!puedeEditar} type="number" value={af.peso} onChange={(e) => actualizarAfirmacion(af.id, { peso: Number(e.target.value) })} style={{ width: 80 }} />
-                <span style={{ paddingTop: 8, fontSize: 13 }}>%</span>
-                {puedeEditar && (
-                  <button className="bib-btn bib-btn-ghost" style={{ color: "var(--red)" }} onClick={() => eliminarAfirmacion(af.id)}>
-                    <Trash2 size={13} />
-                  </button>
-                )}
-              </div>
-              <div style={{ paddingLeft: 24, display: "flex", flexDirection: "column", gap: 6 }}>
-                {af.evidencias.map((ev) => (
-                  <div key={ev.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <span className="code-pill">{ev.id}</span>
-                    <input className="bib-input" disabled={!puedeEditar} value={ev.texto} onChange={(e) => actualizarEvidencia(af.id, ev.id, { texto: e.target.value })} style={{ flex: 1 }} />
-                    <input className="bib-input" disabled={!puedeEditar} type="number" value={ev.peso} onChange={(e) => actualizarEvidencia(af.id, ev.id, { peso: Number(e.target.value) })} style={{ width: 70 }} />
-                    <span style={{ fontSize: 13 }}>%</span>
-                    {puedeEditar && (
-                      <button className="bib-btn bib-btn-ghost" style={{ color: "var(--red)" }} onClick={() => eliminarEvidencia(af.id, ev.id)}>
-                        <Trash2 size={12} />
-                      </button>
-                    )}
-                  </div>
-                ))}
-                {puedeEditar && (
-                  <button className="bib-btn bib-btn-ghost" style={{ alignSelf: "flex-start", fontSize: 12 }} onClick={() => agregarEvidencia(af.id)}>
-                    <Plus size={12} /> Añadir evidencia
-                  </button>
-                )}
-                {af.evidencias.length > 0 && sumaEv !== Number(af.peso) && (
-                  <div style={{ fontSize: 11.5, color: "var(--red)" }}>Las evidencias suman {sumaEv}%, deberían sumar {af.peso}%.</div>
-                )}
-              </div>
-            </div>
-          );
-        })}
+      <div style={{ overflowX: "auto", border: "1px solid var(--navy)", borderRadius: 3 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <colgroup>
+            <col style={{ width: "18%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "23%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "31%" }} />
+            <col style={{ width: "10%" }} />
+          </colgroup>
+          <thead>
+            <tr>
+              <th colSpan={6} style={{ ...thStyle, fontSize: 15 }}>Competencia</th>
+            </tr>
+            <tr>
+              <th colSpan={6} style={{ ...thStyle, background: "#fff", color: "var(--ink)", border: "1px solid var(--navy)" }}>
+                {draft.nombre || AREAS.find((a) => a.id === areaId)?.nombre || areaId}
+              </th>
+            </tr>
+            <tr>
+              <th style={thStyle}>Afirmación</th>
+              <th style={thStyle}>% de preguntas por afirmación</th>
+              <th style={thStyle}>Evidencia</th>
+              <th style={thStyle}>% de preguntas por evidencia</th>
+              <th style={thStyle}>Tarea</th>
+              <th style={thStyle}>% de preguntas por tarea</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filas.length === 0 && (
+              <tr>
+                <td colSpan={6} style={{ ...tdStyle, textAlign: "center", color: "var(--ink-soft)", padding: 20 }}>
+                  Esta área aún no tiene afirmaciones configuradas.
+                </td>
+              </tr>
+            )}
+            {filas.map((fila, idx) => {
+              const evidencias = fila.af.evidencias || [];
+              const sumaEv = evidencias.reduce((s, e) => s + Number(e.peso || 0), 0);
+              const tareasEv = fila.ev ? fila.ev.tareas || [] : [];
+              const sumaTareas = tareasEv.reduce((s, t) => s + Number(t.peso || 0), 0);
+              return (
+                <tr key={idx}>
+                  {fila.mostrarAf && (
+                    <td style={tdStyle} rowSpan={fila.afRowSpan}>
+                      <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
+                        <span className="code-pill">{fila.af.id}</span>
+                        {puedeEditar && (
+                          <button className="bib-btn bib-btn-ghost" style={{ color: "var(--red)", padding: "3px 6px" }} onClick={() => eliminarAfirmacion(fila.af.id)}>
+                            <Trash2 size={11} />
+                          </button>
+                        )}
+                      </div>
+                      <textarea
+                        className="bib-textarea"
+                        disabled={!puedeEditar}
+                        rows={3}
+                        value={fila.af.texto}
+                        onChange={(e) => actualizarAfirmacion(fila.af.id, { texto: e.target.value })}
+                        style={{ marginBottom: 6, resize: "vertical" }}
+                      />
+                      {sumaEv !== Number(fila.af.peso) && evidencias.length > 0 && (
+                        <div style={{ fontSize: 10.5, color: "var(--red)", marginBottom: 4 }}>Evidencias suman {sumaEv}%.</div>
+                      )}
+                      {puedeEditar && (
+                        <button className="bib-btn bib-btn-ghost" style={{ fontSize: 11 }} onClick={() => agregarEvidencia(fila.af.id)}>
+                          <Plus size={10} /> Evidencia
+                        </button>
+                      )}
+                    </td>
+                  )}
+                  {fila.mostrarAf && (
+                    <td style={{ ...tdStyle, textAlign: "center" }} rowSpan={fila.afRowSpan}>
+                      <input
+                        className="bib-input"
+                        type="number"
+                        disabled={!puedeEditar}
+                        value={fila.af.peso}
+                        onChange={(e) => actualizarAfirmacion(fila.af.id, { peso: Number(e.target.value) })}
+                        style={{ textAlign: "center" }}
+                      />
+                    </td>
+                  )}
+
+                  {fila.ev ? (
+                    <>
+                      {fila.mostrarEv && (
+                        <td style={tdStyle} rowSpan={fila.evRowSpan}>
+                          <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
+                            <span className="code-pill">{fila.ev.id}</span>
+                            {puedeEditar && (
+                              <button className="bib-btn bib-btn-ghost" style={{ color: "var(--red)", padding: "3px 6px" }} onClick={() => eliminarEvidencia(fila.af.id, fila.ev.id)}>
+                                <Trash2 size={11} />
+                              </button>
+                            )}
+                          </div>
+                          <textarea
+                            className="bib-textarea"
+                            disabled={!puedeEditar}
+                            rows={3}
+                            value={fila.ev.texto}
+                            onChange={(e) => actualizarEvidencia(fila.af.id, fila.ev.id, { texto: e.target.value })}
+                            style={{ marginBottom: 6, resize: "vertical" }}
+                          />
+                          {sumaTareas !== Number(fila.ev.peso) && tareasEv.length > 0 && (
+                            <div style={{ fontSize: 10.5, color: "var(--red)", marginBottom: 4 }}>Tareas suman {sumaTareas}%.</div>
+                          )}
+                          {puedeEditar && (
+                            <button className="bib-btn bib-btn-ghost" style={{ fontSize: 11 }} onClick={() => agregarTarea(fila.af.id, fila.ev.id)}>
+                              <Plus size={10} /> Tarea
+                            </button>
+                          )}
+                        </td>
+                      )}
+                      {fila.mostrarEv && (
+                        <td style={{ ...tdStyle, textAlign: "center" }} rowSpan={fila.evRowSpan}>
+                          <input
+                            className="bib-input"
+                            type="number"
+                            disabled={!puedeEditar}
+                            value={fila.ev.peso}
+                            onChange={(e) => actualizarEvidencia(fila.af.id, fila.ev.id, { peso: Number(e.target.value) })}
+                            style={{ textAlign: "center" }}
+                          />
+                        </td>
+                      )}
+                    </>
+                  ) : (
+                    <td style={{ ...tdStyle, textAlign: "center", color: "var(--ink-soft)", fontSize: 12 }} colSpan={2}>
+                      Sin evidencias todavía.
+                    </td>
+                  )}
+
+                  {fila.t ? (
+                    <>
+                      <td style={tdStyle}>
+                        <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
+                          <span className="code-pill" style={{ background: "rgba(63,107,79,0.1)", color: "var(--green)" }}>{fila.t.id}</span>
+                          {puedeEditar && (
+                            <button className="bib-btn bib-btn-ghost" style={{ color: "var(--red)", padding: "3px 6px" }} onClick={() => eliminarTarea(fila.af.id, fila.ev.id, fila.t.id)}>
+                              <Trash2 size={11} />
+                            </button>
+                          )}
+                        </div>
+                        <textarea
+                          className="bib-textarea"
+                          disabled={!puedeEditar}
+                          rows={2}
+                          value={fila.t.texto}
+                          onChange={(e) => actualizarTarea(fila.af.id, fila.ev.id, fila.t.id, { texto: e.target.value })}
+                          style={{ resize: "vertical" }}
+                        />
+                      </td>
+                      <td style={{ ...tdStyle, textAlign: "center" }}>
+                        <input
+                          className="bib-input"
+                          type="number"
+                          disabled={!puedeEditar}
+                          value={fila.t.peso}
+                          onChange={(e) => actualizarTarea(fila.af.id, fila.ev.id, fila.t.id, { peso: Number(e.target.value) })}
+                          style={{ textAlign: "center" }}
+                        />
+                      </td>
+                    </>
+                  ) : (
+                    <td style={{ ...tdStyle, textAlign: "center", color: "var(--ink-soft)", fontSize: 12 }} colSpan={2}>
+                      {fila.ev ? "Sin tareas todavía." : ""}
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
       {error && <div style={{ color: "var(--red)", fontSize: 12.5, marginTop: 10 }}>{error}</div>}

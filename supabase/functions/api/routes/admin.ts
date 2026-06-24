@@ -45,8 +45,19 @@ adminRoutes.post("/seed", async (c) => {
           texto: "Identifica información literal en el texto.",
           peso: 30,
           evidencias: [
-            { id: "1.1", texto: "Identifica y entiende el vocabulario y su función en el texto.", peso: 10 },
-            { id: "1.2", texto: "Identifica elementos del contenido (cantidades, hechos, tiempo, lugares, personajes, etc.).", peso: 20 },
+            { id: "1.1", texto: "Identifica y entiende el vocabulario y su función en el texto.", peso: 10, tareas: [] },
+            {
+            id: "1.2",
+            texto: "Identifica elementos del contenido (cantidades, hechos, tiempo, lugares, personajes, etc.).",
+            peso: 20,
+            tareas: [
+              {
+                id: "1.2.1",
+                texto: "Selecciona la opción que identifica correctamente un elemento explícito del contenido (personaje, lugar, hecho o dato) presente en el texto.",
+                peso: 100,
+              },
+            ],
+          },
           ],
         },
         {
@@ -54,12 +65,12 @@ adminRoutes.post("/seed", async (c) => {
           texto: "Comprende el sentido global de un texto a partir de la comprensión de sus partes.",
           peso: 40,
           evidencias: [
-            { id: "2.1", texto: "Identifica la intención comunicativa del autor en una parte de un texto.", peso: 5 },
-            { id: "2.2", texto: "Identifica las funciones de las partes en las que se estructura un texto.", peso: 5 },
-            { id: "2.3", texto: "Identifica la relación entre las voces presentes en un texto.", peso: 6 },
-            { id: "2.4", texto: "Reconoce las ideas centrales de cada parte funcional del texto y las relaciones entre ellas.", peso: 8 },
-            { id: "2.5", texto: "Establece relaciones entre elementos lingüísticos y no lingüísticos en un texto.", peso: 6 },
-            { id: "2.6", texto: "Reconoce síntesis, análisis y paráfrasis apropiadas de un texto.", peso: 10 },
+            { id: "2.1", texto: "Identifica la intención comunicativa del autor en una parte de un texto.", peso: 5, tareas: [] },
+            { id: "2.2", texto: "Identifica las funciones de las partes en las que se estructura un texto.", peso: 5, tareas: [] },
+            { id: "2.3", texto: "Identifica la relación entre las voces presentes en un texto.", peso: 6, tareas: [] },
+            { id: "2.4", texto: "Reconoce las ideas centrales de cada parte funcional del texto y las relaciones entre ellas.", peso: 8, tareas: [] },
+            { id: "2.5", texto: "Establece relaciones entre elementos lingüísticos y no lingüísticos en un texto.", peso: 6, tareas: [] },
+            { id: "2.6", texto: "Reconoce síntesis, análisis y paráfrasis apropiadas de un texto.", peso: 10, tareas: [] },
           ],
         },
         {
@@ -67,10 +78,10 @@ adminRoutes.post("/seed", async (c) => {
           texto: "Asume una posición crítica sobre el texto.",
           peso: 30,
           evidencias: [
-            { id: "3.1", texto: "Evalúa el contenido de enunciados instructivos en un texto.", peso: 6 },
-            { id: "3.2", texto: "Identifica enunciados implícitos y evalúa críticamente las ideas expresadas en un texto.", peso: 8 },
-            { id: "3.3", texto: "Establece relaciones entre diferentes textos.", peso: 8 },
-            { id: "3.4", texto: "Comprende el propósito discursivo de un texto.", peso: 8 },
+            { id: "3.1", texto: "Evalúa el contenido de enunciados instructivos en un texto.", peso: 6, tareas: [] },
+            { id: "3.2", texto: "Identifica enunciados implícitos y evalúa críticamente las ideas expresadas en un texto.", peso: 8, tareas: [] },
+            { id: "3.3", texto: "Establece relaciones entre diferentes textos.", peso: 8, tareas: [] },
+            { id: "3.4", texto: "Comprende el propósito discursivo de un texto.", peso: 8, tareas: [] },
           ],
         },
       ],
@@ -94,6 +105,7 @@ adminRoutes.post("/seed", async (c) => {
         area: "lengua",
         afirmacionId: "A1",
         evidenciaId: "1.2",
+        tareaId: "1.2.1",
         tipoTexto: "narrativo",
         dificultad: "Baja",
         contexto:

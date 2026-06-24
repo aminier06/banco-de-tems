@@ -3,6 +3,7 @@ import { parseJsonb } from "../jsonb.ts";
 
 function mapRow(row: any) {
   if (!row) return null;
+  // row.data ya llega como objeto JS (parseJsonb normaliza si llega como texto).
   return { area: row.area, nombre: row.nombre, ...parseJsonb(row.data) };
 }
 

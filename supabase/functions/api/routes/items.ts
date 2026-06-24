@@ -39,6 +39,7 @@ itemsRoutes.post("/", async (c) => {
       area: b.area,
       afirmacionId: b.afirmacionId,
       evidenciaId: b.evidenciaId,
+      tareaId: b.tareaId,
       tipoTexto: b.tipoTexto,
       dificultad: b.dificultad,
       contexto: b.contexto,

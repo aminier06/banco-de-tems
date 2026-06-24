@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS items (
   area TEXT NOT NULL,
   afirmacion_id TEXT,
   evidencia_id TEXT,
+  tarea_id TEXT,
   tipo_texto TEXT,
   dificultad TEXT NOT NULL,
   contexto TEXT,
@@ -38,6 +39,8 @@ CREATE TABLE IF NOT EXISTS items (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- Si la tabla ya existía de antes de este cambio, esto agrega la columna sin perder datos:
+ALTER TABLE items ADD COLUMN IF NOT EXISTS tarea_id TEXT;
 CREATE INDEX IF NOT EXISTS idx_items_area_estado ON items(area, estado);
 
 CREATE TABLE IF NOT EXISTS tests (

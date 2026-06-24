@@ -18,7 +18,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Descargar el codigo
+      - name: Descargar el código
         uses: actions/checkout@v4
 
       - name: Configurar Node.js
@@ -40,7 +40,7 @@ jobs:
       - name: Configurar GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Subir el resultado de la compilacion
+      - name: Subir el resultado de la compilación
         uses: actions/upload-pages-artifact@v3
         with:
           path: frontend/dist

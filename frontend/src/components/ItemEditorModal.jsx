@@ -11,6 +11,7 @@ export default function ItemEditorModal({ itemSeed, specs, currentUser, onClose,
         area: itemSeed.nuevoEnArea,
         afirmacionId: "",
         evidenciaId: "",
+        tareaId: "",
         tipoTexto: "",
         dificultad: "Media",
         contexto: "",
@@ -40,6 +41,8 @@ export default function ItemEditorModal({ itemSeed, specs, currentUser, onClose,
   const afirmaciones = spec?.afirmaciones || [];
   const afirmacionActual = afirmaciones.find((a) => a.id === form.afirmacionId);
   const evidencias = afirmacionActual?.evidencias || [];
+  const evidenciaActual = evidencias.find((ev) => ev.id === form.evidenciaId);
+  const tareas = evidenciaActual?.tareas || [];
   const tiposTexto = spec?.tiposTexto || [];
 
   const palabras = contarPalabras(form.contexto);
@@ -94,13 +97,13 @@ export default function ItemEditorModal({ itemSeed, specs, currentUser, onClose,
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 14 }}>
         <div>
           <label className="bib-label">Afirmación</label>
           {afirmaciones.length === 0 ? (
             <Banner tone="amber">Esta área aún no tiene especificaciones configuradas. Pide al equipo técnico que las cargue en la pestaña "Especificaciones".</Banner>
           ) : (
-            <select className="bib-select" disabled={soloLectura} value={form.afirmacionId || ""} onChange={(e) => setForm({ ...form, afirmacionId: e.target.value, evidenciaId: "" })}>
+            <select className="bib-select" disabled={soloLectura} value={form.afirmacionId || ""} onChange={(e) => setForm({ ...form, afirmacionId: e.target.value, evidenciaId: "", tareaId: "" })}>
               <option value="">Selecciona…</option>
               {afirmaciones.map((a) => (
                 <option key={a.id} value={a.id}>{a.id} — {a.texto} ({a.peso}%)</option>
@@ -110,10 +113,19 @@ export default function ItemEditorModal({ itemSeed, specs, currentUser, onClose,
         </div>
         <div>
           <label className="bib-label">Evidencia</label>
-          <select className="bib-select" disabled={soloLectura || !afirmacionActual} value={form.evidenciaId || ""} onChange={(e) => setForm({ ...form, evidenciaId: e.target.value })}>
+          <select className="bib-select" disabled={soloLectura || !afirmacionActual} value={form.evidenciaId || ""} onChange={(e) => setForm({ ...form, evidenciaId: e.target.value, tareaId: "" })}>
             <option value="">Selecciona…</option>
             {evidencias.map((ev) => (
               <option key={ev.id} value={ev.id}>{ev.id} — {ev.texto} ({ev.peso}%)</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="bib-label">Tarea {evidenciaActual && tareas.length === 0 && "(sin definir)"}</label>
+          <select className="bib-select" disabled={soloLectura || !evidenciaActual || tareas.length === 0} value={form.tareaId || ""} onChange={(e) => setForm({ ...form, tareaId: e.target.value })}>
+            <option value="">Selecciona…</option>
+            {tareas.map((t) => (
+              <option key={t.id} value={t.id}>{t.id} — {t.texto} ({t.peso}%)</option>
             ))}
           </select>
         </div>

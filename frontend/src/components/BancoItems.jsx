@@ -93,6 +93,7 @@ export default function BancoItems({
           const spec = specs[item.area];
           const af = spec?.afirmaciones?.find((a) => a.id === item.afirmacionId);
           const ev = af?.evidencias?.find((e) => e.id === item.evidenciaId);
+          const tarea = ev?.tareas?.find((t) => t.id === item.tareaId);
           return (
             <div key={item.id} className="bib-card" style={{ padding: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
@@ -100,7 +101,7 @@ export default function BancoItems({
                   <StampBadge estado={item.estado} />
                   <AreaTag id={item.area} />
                   {item.afirmacionId ? (
-                    <span className="code-pill">{item.afirmacionId} · {item.evidenciaId}</span>
+                    <span className="code-pill">{item.afirmacionId} · {item.evidenciaId}{item.tareaId ? ` · ${item.tareaId}` : ""}</span>
                   ) : (
                     <span className="code-pill" style={{ background: "rgba(162,59,59,0.1)", color: "var(--red)" }}>Sin clasificar</span>
                   )}
@@ -111,7 +112,7 @@ export default function BancoItems({
               <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>{item.enunciado}</p>
               {af && (
                 <p style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 10 }}>
-                  {af.texto} {ev ? `→ ${ev.texto}` : ""}
+                  {af.texto} {ev ? `→ ${ev.texto}` : ""} {tarea ? `→ ${tarea.texto}` : ""}
                 </p>
               )}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

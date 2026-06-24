@@ -37,15 +37,18 @@ export function resolverIndiceRespuesta(valor) {
   return null;
 }
 
-export function resolverClasificacion(areaId, afirmacionRaw, evidenciaRaw, specs) {
+export function resolverClasificacion(areaId, afirmacionRaw, evidenciaRaw, tareaRaw, specs) {
   const spec = specs[areaId];
-  if (!spec || !spec.afirmaciones) return { afirmacionId: "", evidenciaId: "" };
+  if (!spec || !spec.afirmaciones) return { afirmacionId: "", evidenciaId: "", tareaId: "" };
   const afv = normalizar(afirmacionRaw);
   const af = spec.afirmaciones.find((a) => normalizar(a.id) === afv || normalizar(a.texto) === afv);
-  if (!af) return { afirmacionId: "", evidenciaId: "" };
+  if (!af) return { afirmacionId: "", evidenciaId: "", tareaId: "" };
   const evv = normalizar(evidenciaRaw);
-  const ev = af.evidencias.find((e) => normalizar(e.id) === evv || normalizar(e.texto) === evv);
-  return { afirmacionId: af.id, evidenciaId: ev ? ev.id : "" };
+  const ev = (af.evidencias || []).find((e) => normalizar(e.id) === evv || normalizar(e.texto) === evv);
+  if (!ev) return { afirmacionId: af.id, evidenciaId: "", tareaId: "" };
+  const tv = normalizar(tareaRaw);
+  const t = (ev.tareas || []).find((x) => normalizar(x.id) === tv || normalizar(x.texto) === tv);
+  return { afirmacionId: af.id, evidenciaId: ev.id, tareaId: t ? t.id : "" };
 }
 
 export function resolverAutor(valor, users, fallbackId) {
@@ -59,6 +62,7 @@ export const CAMPOS_IMPORTACION = [
   { key: "area", label: "Área", requerido: true },
   { key: "afirmacion", label: "Afirmación (código o texto)", requerido: false },
   { key: "evidencia", label: "Evidencia (código o texto)", requerido: false },
+  { key: "tarea", label: "Tarea (código o texto)", requerido: false },
   { key: "dificultad", label: "Dificultad", requerido: false },
   { key: "tipoTexto", label: "Tipo de texto", requerido: false },
   { key: "contexto", label: "Contexto / texto base", requerido: false },
@@ -104,6 +108,7 @@ export function descargarPlantillaCSV() {
     area: "lengua",
     afirmacion: "A1",
     evidencia: "1.2",
+    tarea: "1.2.1",
     dificultad: "Baja",
     tipoTexto: "narrativo",
     contexto: "Texto de hasta 350 palabras sobre el que se basa la pregunta.",
