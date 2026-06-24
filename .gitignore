@@ -1,0 +1,14 @@
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# Supabase CLI (estado local, no se sube)
+supabase/.temp/
+supabase/.branches/
+.env
+.env.local
+
+# Sistema
+.DS_Store
+Thumbs.db

@@ -6,4 +6,5 @@ export default defineConfig({
   server: {
     port: 5173,
   },
+  base: process.env.VITE_BASE_PATH || "/",
 });
