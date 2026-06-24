@@ -9,6 +9,7 @@ function mapRow(row: any) {
     afirmacionId: row.afirmacion_id,
     evidenciaId: row.evidencia_id,
     tareaId: row.tarea_id,
+    competenciaId: row.competencia_id,
     tipoTexto: row.tipo_texto,
     dificultad: row.dificultad,
     contexto: row.contexto,
@@ -74,10 +75,10 @@ export const Items = {
     const id = crypto.randomUUID();
     await sql`
       INSERT INTO items
-        (id, area, afirmacion_id, evidencia_id, tarea_id, tipo_texto, dificultad, contexto, enunciado, opciones,
+        (id, area, afirmacion_id, evidencia_id, tarea_id, competencia_id, tipo_texto, dificultad, contexto, enunciado, opciones,
          respuesta_correcta, justificacion_correcta, justificacion_distractores, estado, historial, autor_id)
       VALUES (
-        ${id}, ${b.area}, ${b.afirmacionId || null}, ${b.evidenciaId || null}, ${b.tareaId || null}, ${b.tipoTexto || null},
+        ${id}, ${b.area}, ${b.afirmacionId || null}, ${b.evidenciaId || null}, ${b.tareaId || null}, ${b.competenciaId || null}, ${b.tipoTexto || null},
         ${b.dificultad}, ${b.contexto || null}, ${b.enunciado}, ${JSON.stringify(b.opciones)}::jsonb,
         ${b.respuestaCorrecta}, ${b.justificacionCorrecta || null}, ${b.justificacionDistractores || null},
         ${b.estado || "borrador"}, ${JSON.stringify(b.historial || [])}::jsonb, ${autorId}
@@ -94,6 +95,7 @@ export const Items = {
         afirmacion_id = ${b.afirmacionId ?? actual.afirmacionId},
         evidencia_id = ${b.evidenciaId ?? actual.evidenciaId},
         tarea_id = ${b.tareaId ?? actual.tareaId},
+        competencia_id = ${b.competenciaId ?? actual.competenciaId},
         tipo_texto = ${b.tipoTexto ?? actual.tipoTexto},
         dificultad = ${b.dificultad ?? actual.dificultad},
         contexto = ${b.contexto ?? actual.contexto},
@@ -128,10 +130,10 @@ export const Items = {
         const id = crypto.randomUUID();
         await tx`
           INSERT INTO items
-            (id, area, afirmacion_id, evidencia_id, tarea_id, tipo_texto, dificultad, contexto, enunciado, opciones,
+            (id, area, afirmacion_id, evidencia_id, tarea_id, competencia_id, tipo_texto, dificultad, contexto, enunciado, opciones,
              respuesta_correcta, justificacion_correcta, justificacion_distractores, estado, historial, autor_id)
           VALUES (
-            ${id}, ${f.area}, ${f.afirmacionId || null}, ${f.evidenciaId || null}, ${f.tareaId || null}, ${f.tipoTexto || null},
+            ${id}, ${f.area}, ${f.afirmacionId || null}, ${f.evidenciaId || null}, ${f.tareaId || null}, ${f.competenciaId || null}, ${f.tipoTexto || null},
             ${f.dificultad}, ${f.contexto || null}, ${f.enunciado}, ${JSON.stringify(f.opciones)}::jsonb,
             ${f.respuestaCorrecta}, ${f.justificacionCorrecta || null}, ${f.justificacionDistractores || null},
             'borrador', ${JSON.stringify(f.historial || [])}::jsonb, ${f.autorId || fallbackAutorId}

@@ -37,18 +37,32 @@ export function resolverIndiceRespuesta(valor) {
   return null;
 }
 
-export function resolverClasificacion(areaId, afirmacionRaw, evidenciaRaw, tareaRaw, specs) {
+export function resolverClasificacion(areaId, competenciaRaw, afirmacionRaw, evidenciaRaw, tareaRaw, specs) {
   const spec = specs[areaId];
-  if (!spec || !spec.afirmaciones) return { afirmacionId: "", evidenciaId: "", tareaId: "" };
+  const vacio = { competenciaId: "", afirmacionId: "", evidenciaId: "", tareaId: "" };
+  if (!spec) return vacio;
+  const competencias = Array.isArray(spec.competencias)
+    ? spec.competencias
+    : Array.isArray(spec.afirmaciones)
+    ? [{ id: "principal", nombre: spec.nombre || "", afirmaciones: spec.afirmaciones }]
+    : [];
+  if (competencias.length === 0) return vacio;
+  const cv = normalizar(competenciaRaw);
+  const comp = cv
+    ? competencias.find((c) => normalizar(c.id) === cv || normalizar(c.nombre) === cv)
+    : competencias.length === 1
+    ? competencias[0]
+    : null;
+  if (!comp) return vacio;
   const afv = normalizar(afirmacionRaw);
-  const af = spec.afirmaciones.find((a) => normalizar(a.id) === afv || normalizar(a.texto) === afv);
-  if (!af) return { afirmacionId: "", evidenciaId: "", tareaId: "" };
+  const af = (comp.afirmaciones || []).find((a) => normalizar(a.id) === afv || normalizar(a.texto) === afv);
+  if (!af) return { ...vacio, competenciaId: comp.id };
   const evv = normalizar(evidenciaRaw);
   const ev = (af.evidencias || []).find((e) => normalizar(e.id) === evv || normalizar(e.texto) === evv);
-  if (!ev) return { afirmacionId: af.id, evidenciaId: "", tareaId: "" };
+  if (!ev) return { ...vacio, competenciaId: comp.id, afirmacionId: af.id };
   const tv = normalizar(tareaRaw);
   const t = (ev.tareas || []).find((x) => normalizar(x.id) === tv || normalizar(x.texto) === tv);
-  return { afirmacionId: af.id, evidenciaId: ev.id, tareaId: t ? t.id : "" };
+  return { competenciaId: comp.id, afirmacionId: af.id, evidenciaId: ev.id, tareaId: t ? t.id : "" };
 }
 
 export function resolverAutor(valor, users, fallbackId) {
@@ -60,6 +74,7 @@ export function resolverAutor(valor, users, fallbackId) {
 
 export const CAMPOS_IMPORTACION = [
   { key: "area", label: "Área", requerido: true },
+  { key: "competencia", label: "Competencia (código o nombre)", requerido: false },
   { key: "afirmacion", label: "Afirmación (código o texto)", requerido: false },
   { key: "evidencia", label: "Evidencia (código o texto)", requerido: false },
   { key: "tarea", label: "Tarea (código o texto)", requerido: false },
@@ -106,6 +121,7 @@ export function autoMapearColumnas(headers) {
 export function descargarPlantillaCSV() {
   const ejemplo = {
     area: "lengua",
+    competencia: "comprension-lectora",
     afirmacion: "A1",
     evidencia: "1.2",
     tarea: "1.2.1",

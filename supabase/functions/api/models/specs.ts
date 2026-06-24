@@ -4,6 +4,7 @@ import { parseJsonb } from "../jsonb.ts";
 function mapRow(row: any) {
   if (!row) return null;
   // row.data ya llega como objeto JS (parseJsonb normaliza si llega como texto).
+  // Forma actual: { competencias: [ { id, nombre, afirmaciones, tiposTexto }, ... ] }
   return { area: row.area, nombre: row.nombre, ...parseJsonb(row.data) };
 }
 
@@ -22,11 +23,14 @@ export const Specs = {
     return mapRow(rows[0]);
   },
 
-  async upsert(area: string, { nombre, afirmaciones, tiposTexto }: any) {
-    const data = JSON.stringify({ afirmaciones, tiposTexto: tiposTexto || [] });
+  // body: { competencias: [{ id, nombre, afirmaciones, tiposTexto }, ...] }
+  // Se guarda tal cual como jsonb; la validación de pesos vive en la ruta.
+  async upsert(area: string, body: any) {
+    const competencias = Array.isArray(body?.competencias) ? body.competencias : [];
+    const data = JSON.stringify({ competencias });
     await sql`
-      INSERT INTO specs (area, nombre, data) VALUES (${area}, ${nombre || area}, ${data}::jsonb)
-      ON CONFLICT (area) DO UPDATE SET nombre = EXCLUDED.nombre, data = EXCLUDED.data
+      INSERT INTO specs (area, nombre, data) VALUES (${area}, ${area}, ${data}::jsonb)
+      ON CONFLICT (area) DO UPDATE SET data = EXCLUDED.data
     `;
     return this.get(area);
   },

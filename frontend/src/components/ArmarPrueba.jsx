@@ -9,6 +9,7 @@ function targetCount(peso, total) {
 
 export default function ArmarPrueba({ items, specs, tests, puedeEliminarPrueba, onSaveTest, onDeleteTest, onPreview }) {
   const [areaId, setAreaId] = useState("lengua");
+  const [competenciaId, setCompetenciaId] = useState("");
   const [nombre, setNombre] = useState("");
   const [grado, setGrado] = useState("6to de Secundaria");
   const [convocatoria, setConvocatoria] = useState("Primera convocatoria");
@@ -18,7 +19,18 @@ export default function ArmarPrueba({ items, specs, tests, puedeEliminarPrueba, 
   const [error, setError] = useState("");
 
   const spec = specs[areaId];
-  const aprobados = items.filter((i) => i.area === areaId && i.estado === "aprobado");
+  // Compatibilidad: si el area todavia no migro a la forma con "competencias",
+  // se trata su unica tabla de afirmaciones como una competencia "principal".
+  const competencias = Array.isArray(spec?.competencias)
+    ? spec.competencias
+    : Array.isArray(spec?.afirmaciones)
+    ? [{ id: "principal", nombre: spec.nombre || "", afirmaciones: spec.afirmaciones }]
+    : [];
+  const compIdActual = competenciaId || (competencias.length === 1 ? competencias[0].id : "");
+  const comp = competencias.find((c) => c.id === compIdActual);
+  const afirmaciones = comp?.afirmaciones || [];
+
+  const aprobados = items.filter((i) => i.area === areaId && i.estado === "aprobado" && (!comp || i.competenciaId === comp.id));
 
   const toggleItem = (id) => {
     setSeleccionados((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -34,25 +46,36 @@ export default function ArmarPrueba({ items, specs, tests, puedeEliminarPrueba, 
   }, [seleccionados, items]);
 
   const distribucion = useMemo(() => {
-    if (!spec?.afirmaciones) return [];
-    return spec.afirmaciones.map((af) => {
+    if (afirmaciones.length === 0) return [];
+    return afirmaciones.map((af) => {
       const targetAf = targetCount(af.peso, totalItems);
-      const evidencias = af.evidencias.map((ev) => ({ ...ev, target: targetCount(ev.peso, totalItems), actual: conteoPorEvidencia[ev.id] || 0 }));
+      const evidencias = (af.evidencias || []).map((ev) => ({ ...ev, target: targetCount(ev.peso, totalItems), actual: conteoPorEvidencia[ev.id] || 0 }));
       const actualAf = evidencias.reduce((s, e) => s + e.actual, 0);
       return { ...af, target: targetAf, actual: actualAf, evidencias };
     });
-  }, [spec, totalItems, conteoPorEvidencia]);
+  }, [afirmaciones, totalItems, conteoPorEvidencia]);
 
   const totalSeleccionado = seleccionados.length;
   const cumpleTotal = totalSeleccionado === Number(totalItems);
   const desalineados = distribucion.filter((d) => d.actual !== d.target);
+
+  const cambiarArea = (nuevaArea) => {
+    setAreaId(nuevaArea);
+    setCompetenciaId("");
+    setSeleccionados([]);
+  };
+
+  const cambiarCompetencia = (nuevaCompId) => {
+    setCompetenciaId(nuevaCompId);
+    setSeleccionados([]);
+  };
 
   const guardarPrueba = async () => {
     setError("");
     setGuardando(true);
     try {
       await onSaveTest({
-        nombre: nombre || `Prueba de ${areaInfo(areaId).nombre}`,
+        nombre: nombre || `Prueba de ${comp?.nombre || areaInfo(areaId).nombre}`,
         area: areaId,
         grado,
         convocatoria,
@@ -72,17 +95,17 @@ export default function ArmarPrueba({ items, specs, tests, puedeEliminarPrueba, 
     <div>
       <h1 className="f-display" style={{ fontSize: 24, marginBottom: 2 }}>Armar prueba</h1>
       <p style={{ color: "var(--ink-soft)", fontSize: 13.5, marginBottom: 16 }}>
-        Selecciona ítems aprobados del banco respetando la distribución de la tabla de especificaciones.
+        Selecciona items aprobados del banco respetando la distribucion de la tabla de especificaciones.
       </p>
 
-      <div className="bib-card" style={{ padding: 14, marginBottom: 16, display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr 0.8fr", gap: 10 }}>
+      <div className="bib-card" style={{ padding: 14, marginBottom: 12, display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr 0.8fr", gap: 10 }}>
         <div>
           <label className="bib-label">Nombre de la prueba</label>
-          <input className="bib-input" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder={`Prueba de ${areaInfo(areaId).nombre}`} />
+          <input className="bib-input" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder={`Prueba de ${comp?.nombre || areaInfo(areaId).nombre}`} />
         </div>
         <div>
-          <label className="bib-label">Área</label>
-          <select className="bib-select" value={areaId} onChange={(e) => { setAreaId(e.target.value); setSeleccionados([]); }}>
+          <label className="bib-label">Area</label>
+          <select className="bib-select" value={areaId} onChange={(e) => cambiarArea(e.target.value)}>
             {AREAS.map((a) => (
               <option key={a.id} value={a.id}>{a.nombre}</option>
             ))}
@@ -97,19 +120,33 @@ export default function ArmarPrueba({ items, specs, tests, puedeEliminarPrueba, 
           </select>
         </div>
         <div>
-          <label className="bib-label">Total de ítems</label>
+          <label className="bib-label">Total de items</label>
           <input className="bib-input" type="number" min={1} value={totalItems} onChange={(e) => setTotalItems(Number(e.target.value))} />
         </div>
       </div>
 
-      {!spec?.afirmaciones || spec.afirmaciones.length === 0 ? (
-        <Banner tone="amber">Esta área no tiene especificaciones configuradas todavía. Ve a la pestaña "Especificaciones" para definir afirmaciones y evidencias antes de armar la prueba.</Banner>
+      <div className="bib-card" style={{ padding: 14, marginBottom: 16 }}>
+        <label className="bib-label">Competencia</label>
+        {competencias.length === 0 ? (
+          <Banner tone="amber">Esta area no tiene ninguna competencia configurada todavia. Ve a la pestana "Especificaciones" para crear una.</Banner>
+        ) : (
+          <select className="bib-select" value={compIdActual} onChange={(e) => cambiarCompetencia(e.target.value)}>
+            <option value="">Selecciona...</option>
+            {competencias.map((c) => (
+              <option key={c.id} value={c.id}>{c.nombre || c.id}</option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      {!comp || afirmaciones.length === 0 ? (
+        <Banner tone="amber">Selecciona una competencia con afirmaciones y evidencias configuradas para poder armar la prueba.</Banner>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1.4fr", gap: 16 }}>
           <div>
             <div className="bib-card" style={{ padding: 14, marginBottom: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-                <span className="f-display" style={{ fontSize: 14 }}>Distribución objetivo</span>
+                <span className="f-display" style={{ fontSize: 14 }}>Distribucion objetivo</span>
                 <span className="code-pill">{totalSeleccionado} / {totalItems} seleccionados</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -136,30 +173,30 @@ export default function ArmarPrueba({ items, specs, tests, puedeEliminarPrueba, 
             </div>
 
             {cumpleTotal && desalineados.length === 0 ? (
-              <Banner tone="green">La selección cumple la distribución objetivo de la tabla de especificaciones.</Banner>
+              <Banner tone="green">La seleccion cumple la distribucion objetivo de la tabla de especificaciones.</Banner>
             ) : (
               <Banner tone="amber">
-                {!cumpleTotal && <>Faltan o sobran ítems para llegar a {totalItems} en total. </>}
-                {desalineados.length > 0 && <>Hay {desalineados.length} afirmación(es) sin la proporción exacta.</>}
+                {!cumpleTotal && <>Faltan o sobran items para llegar a {totalItems} en total. </>}
+                {desalineados.length > 0 && <>Hay {desalineados.length} afirmacion(es) sin la proporcion exacta.</>}
               </Banner>
             )}
 
             {error && <div style={{ color: "var(--red)", fontSize: 12.5, marginTop: 10 }}>{error}</div>}
 
             <button className="bib-btn bib-btn-primary" style={{ marginTop: 12, width: "100%", justifyContent: "center" }} disabled={seleccionados.length === 0 || guardando} onClick={guardarPrueba}>
-              <Save size={14} /> {guardando ? "Guardando…" : `Guardar prueba (${seleccionados.length} ítems)`}
+              <Save size={14} /> {guardando ? "Guardando..." : `Guardar prueba (${seleccionados.length} items)`}
             </button>
           </div>
 
           <div>
             <div className="bib-card bib-scroll" style={{ padding: 14, maxHeight: 520, overflowY: "auto" }}>
               {aprobados.length === 0 && (
-                <div style={{ color: "var(--ink-soft)", fontSize: 13, textAlign: "center", padding: 20 }}>Todavía no hay ítems aprobados en esta área.</div>
+                <div style={{ color: "var(--ink-soft)", fontSize: 13, textAlign: "center", padding: 20 }}>Todavia no hay items aprobados en esta competencia.</div>
               )}
-              {spec.afirmaciones.map((af) => (
+              {afirmaciones.map((af) => (
                 <div key={af.id} style={{ marginBottom: 14 }}>
-                  <div className="f-display" style={{ fontSize: 13, color: "var(--navy)", marginBottom: 6 }}>{af.id} — {af.texto}</div>
-                  {af.evidencias.map((ev) => {
+                  <div className="f-display" style={{ fontSize: 13, color: "var(--navy)", marginBottom: 6 }}>{af.id} - {af.texto}</div>
+                  {(af.evidencias || []).map((ev) => {
                     const itemsEv = aprobados.filter((i) => i.evidenciaId === ev.id);
                     if (itemsEv.length === 0) return null;
                     return (
@@ -190,7 +227,7 @@ export default function ArmarPrueba({ items, specs, tests, puedeEliminarPrueba, 
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 13.5 }}>{t.nombre}</div>
                   <div style={{ fontSize: 11.5, color: "var(--ink-soft)" }}>
-                    <AreaTag id={t.area} /> · {t.grado} · {t.convocatoria} · {t.itemIds.length} ítems · {t.createdAt?.slice(0, 10)}
+                    <AreaTag id={t.area} /> - {t.grado} - {t.convocatoria} - {t.itemIds.length} items - {t.createdAt?.slice(0, 10)}
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
@@ -198,7 +235,7 @@ export default function ArmarPrueba({ items, specs, tests, puedeEliminarPrueba, 
                     <Eye size={13} /> Vista previa
                   </button>
                   {puedeEliminarPrueba && (
-                    <button className="bib-btn bib-btn-ghost" style={{ color: "var(--red)" }} onClick={() => { if (confirm("¿Eliminar esta prueba armada?")) onDeleteTest(t.id); }}>
+                    <button className="bib-btn bib-btn-ghost" style={{ color: "var(--red)" }} onClick={() => { if (confirm("Eliminar esta prueba armada?")) onDeleteTest(t.id); }}>
                       <Trash2 size={13} />
                     </button>
                   )}

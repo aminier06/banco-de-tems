@@ -91,7 +91,13 @@ export default function BancoItems({
         )}
         {filtrados.map((item) => {
           const spec = specs[item.area];
-          const af = spec?.afirmaciones?.find((a) => a.id === item.afirmacionId);
+          const competencias = Array.isArray(spec?.competencias)
+            ? spec.competencias
+            : Array.isArray(spec?.afirmaciones)
+            ? [{ id: "principal", nombre: spec.nombre || "", afirmaciones: spec.afirmaciones }]
+            : [];
+          const comp = competencias.find((c) => c.id === item.competenciaId) || competencias[0];
+          const af = comp?.afirmaciones?.find((a) => a.id === item.afirmacionId);
           const ev = af?.evidencias?.find((e) => e.id === item.evidenciaId);
           const tarea = ev?.tareas?.find((t) => t.id === item.tareaId);
           return (
@@ -112,7 +118,7 @@ export default function BancoItems({
               <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>{item.enunciado}</p>
               {af && (
                 <p style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 10 }}>
-                  {af.texto} {ev ? `→ ${ev.texto}` : ""} {tarea ? `→ ${tarea.texto}` : ""}
+                  {comp?.nombre ? `${comp.nombre} · ` : ""}{af.texto} {ev ? `→ ${ev.texto}` : ""} {tarea ? `→ ${tarea.texto}` : ""}
                 </p>
               )}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

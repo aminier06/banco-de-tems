@@ -40,6 +40,7 @@ itemsRoutes.post("/", async (c) => {
       afirmacionId: b.afirmacionId,
       evidenciaId: b.evidenciaId,
       tareaId: b.tareaId,
+      competenciaId: b.competenciaId,
       tipoTexto: b.tipoTexto,
       dificultad: b.dificultad,
       contexto: b.contexto,

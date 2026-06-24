@@ -9,6 +9,7 @@ export default function ItemEditorModal({ itemSeed, specs, currentUser, onClose,
   const base = esNuevo
     ? {
         area: itemSeed.nuevoEnArea,
+        competenciaId: "",
         afirmacionId: "",
         evidenciaId: "",
         tareaId: "",
@@ -23,7 +24,7 @@ export default function ItemEditorModal({ itemSeed, specs, currentUser, onClose,
         estado: "borrador",
         autorId: currentUser.id,
         autorNombre: currentUser.nombre,
-        historial: [{ fecha: new Date().toISOString().slice(0, 10), autor: currentUser.nombre, accion: "Creación del ítem." }],
+        historial: [{ fecha: new Date().toISOString().slice(0, 10), autor: currentUser.nombre, accion: "Creacion del item." }],
       }
     : itemSeed;
 
@@ -38,16 +39,29 @@ export default function ItemEditorModal({ itemSeed, specs, currentUser, onClose,
     currentUser.rol !== "administrador";
 
   const spec = specs[form.area];
-  const afirmaciones = spec?.afirmaciones || [];
+  // Compatibilidad: si el area todavia no migro a la forma con "competencias",
+  // se trata su unica tabla de afirmaciones como una competencia "principal".
+  const competencias = Array.isArray(spec?.competencias)
+    ? spec.competencias
+    : Array.isArray(spec?.afirmaciones)
+    ? [{ id: "principal", nombre: spec.nombre || "", afirmaciones: spec.afirmaciones, tiposTexto: spec.tiposTexto || [] }]
+    : [];
+  const competenciaActual = competencias.find((c) => c.id === form.competenciaId);
+  const afirmaciones = competenciaActual?.afirmaciones || [];
   const afirmacionActual = afirmaciones.find((a) => a.id === form.afirmacionId);
   const evidencias = afirmacionActual?.evidencias || [];
   const evidenciaActual = evidencias.find((ev) => ev.id === form.evidenciaId);
   const tareas = evidenciaActual?.tareas || [];
-  const tiposTexto = spec?.tiposTexto || [];
+  const tiposTexto = competenciaActual?.tiposTexto || [];
 
   const palabras = contarPalabras(form.contexto);
   const camposCompletos =
-    form.afirmacionId && form.evidenciaId && form.enunciado.trim() && form.opciones.every((o) => o.trim()) && form.justificacionCorrecta.trim();
+    form.competenciaId &&
+    form.afirmacionId &&
+    form.evidenciaId &&
+    form.enunciado.trim() &&
+    form.opciones.every((o) => o.trim()) &&
+    form.justificacionCorrecta.trim();
 
   const setOpcion = (idx, val) => {
     const next = [...form.opciones];
@@ -61,22 +75,40 @@ export default function ItemEditorModal({ itemSeed, specs, currentUser, onClose,
     try {
       await onSave(form, esNuevo);
     } catch (err) {
-      setError(err.message || "No se pudo guardar el ítem.");
+      setError(err.message || "No se pudo guardar el item.");
     } finally {
       setGuardando(false);
     }
   };
 
   return (
-    <ModalShell onClose={onClose} title={esNuevo ? "Nuevo ítem" : soloLectura ? "Ver ítem" : "Editar ítem"} wide>
+    <ModalShell onClose={onClose} title={esNuevo ? "Nuevo item" : soloLectura ? "Ver item" : "Editar item"} wide>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 14 }}>
         <div>
-          <label className="bib-label">Área</label>
+          <label className="bib-label">Area</label>
           <select className="bib-select" disabled value={form.area} onChange={() => {}}>
             {AREAS.map((a) => (
               <option key={a.id} value={a.id}>{a.nombre}</option>
             ))}
           </select>
+        </div>
+        <div>
+          <label className="bib-label">Competencia</label>
+          {competencias.length === 0 ? (
+            <Banner tone="amber">Esta area aun no tiene ninguna competencia configurada. Pide al equipo tecnico que la cree en la pestana "Especificaciones".</Banner>
+          ) : (
+            <select
+              className="bib-select"
+              disabled={soloLectura}
+              value={form.competenciaId || ""}
+              onChange={(e) => setForm({ ...form, competenciaId: e.target.value, afirmacionId: "", evidenciaId: "", tareaId: "", tipoTexto: "" })}
+            >
+              <option value="">Selecciona...</option>
+              {competencias.map((c) => (
+                <option key={c.id} value={c.id}>{c.nombre || c.id}</option>
+              ))}
+            </select>
+          )}
         </div>
         <div>
           <label className="bib-label">Dificultad</label>
@@ -86,60 +118,61 @@ export default function ItemEditorModal({ itemSeed, specs, currentUser, onClose,
             ))}
           </select>
         </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12, marginBottom: 14 }}>
         <div>
           <label className="bib-label">Tipo de texto {tiposTexto.length === 0 && "(no configurado)"}</label>
           <select className="bib-select" disabled={soloLectura || tiposTexto.length === 0} value={form.tipoTexto || ""} onChange={(e) => setForm({ ...form, tipoTexto: e.target.value })}>
-            <option value="">—</option>
+            <option value="">-</option>
             {tiposTexto.map((t) => (
               <option key={t.id} value={t.id}>{t.texto}</option>
             ))}
           </select>
         </div>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 14 }}>
         <div>
-          <label className="bib-label">Afirmación</label>
-          {afirmaciones.length === 0 ? (
-            <Banner tone="amber">Esta área aún no tiene especificaciones configuradas. Pide al equipo técnico que las cargue en la pestaña "Especificaciones".</Banner>
-          ) : (
-            <select className="bib-select" disabled={soloLectura} value={form.afirmacionId || ""} onChange={(e) => setForm({ ...form, afirmacionId: e.target.value, evidenciaId: "", tareaId: "" })}>
-              <option value="">Selecciona…</option>
-              {afirmaciones.map((a) => (
-                <option key={a.id} value={a.id}>{a.id} — {a.texto} ({a.peso}%)</option>
-              ))}
-            </select>
-          )}
+          <label className="bib-label">Afirmacion</label>
+          <select
+            className="bib-select"
+            disabled={soloLectura || !competenciaActual}
+            value={form.afirmacionId || ""}
+            onChange={(e) => setForm({ ...form, afirmacionId: e.target.value, evidenciaId: "", tareaId: "" })}
+          >
+            <option value="">Selecciona...</option>
+            {afirmaciones.map((a) => (
+              <option key={a.id} value={a.id}>{a.id} - {a.texto} ({a.peso}%)</option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="bib-label">Evidencia</label>
           <select className="bib-select" disabled={soloLectura || !afirmacionActual} value={form.evidenciaId || ""} onChange={(e) => setForm({ ...form, evidenciaId: e.target.value, tareaId: "" })}>
-            <option value="">Selecciona…</option>
+            <option value="">Selecciona...</option>
             {evidencias.map((ev) => (
-              <option key={ev.id} value={ev.id}>{ev.id} — {ev.texto} ({ev.peso}%)</option>
+              <option key={ev.id} value={ev.id}>{ev.id} - {ev.texto} ({ev.peso}%)</option>
             ))}
           </select>
         </div>
         <div>
           <label className="bib-label">Tarea {evidenciaActual && tareas.length === 0 && "(sin definir)"}</label>
           <select className="bib-select" disabled={soloLectura || !evidenciaActual || tareas.length === 0} value={form.tareaId || ""} onChange={(e) => setForm({ ...form, tareaId: e.target.value })}>
-            <option value="">Selecciona…</option>
+            <option value="">Selecciona...</option>
             {tareas.map((t) => (
-              <option key={t.id} value={t.id}>{t.id} — {t.texto} ({t.peso}%)</option>
+              <option key={t.id} value={t.id}>{t.id} - {t.texto} ({t.peso}%)</option>
             ))}
           </select>
         </div>
       </div>
 
       <div style={{ marginBottom: 14 }}>
-        <label className="bib-label">Contexto (texto base, opcional pero recomendado — máx. ~350 palabras) · {palabras} palabra(s)</label>
-        <textarea className="bib-textarea" disabled={soloLectura} rows={5} value={form.contexto || ""} onChange={(e) => setForm({ ...form, contexto: e.target.value })} placeholder="Texto autosuficiente sobre el que se basa la pregunta…" />
+        <label className="bib-label">Contexto (texto base, opcional pero recomendado - max. ~350 palabras) - {palabras} palabra(s)</label>
+        <textarea className="bib-textarea" disabled={soloLectura} rows={5} value={form.contexto || ""} onChange={(e) => setForm({ ...form, contexto: e.target.value })} placeholder="Texto autosuficiente sobre el que se basa la pregunta..." />
         {palabras > 350 && <div style={{ color: "var(--red)", fontSize: 11.5, marginTop: 4 }}>El texto supera las 350 palabras recomendadas.</div>}
       </div>
 
       <div style={{ marginBottom: 14 }}>
         <label className="bib-label">Enunciado</label>
-        <textarea className="bib-textarea" disabled={soloLectura} rows={2} value={form.enunciado} onChange={(e) => setForm({ ...form, enunciado: e.target.value })} placeholder="¿Qué se le pregunta al estudiante?" />
+        <textarea className="bib-textarea" disabled={soloLectura} rows={2} value={form.enunciado} onChange={(e) => setForm({ ...form, enunciado: e.target.value })} placeholder="Que se le pregunta al estudiante?" />
       </div>
 
       <div style={{ marginBottom: 14 }}>
@@ -149,7 +182,7 @@ export default function ItemEditorModal({ itemSeed, specs, currentUser, onClose,
             <div key={idx} style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <input type="radio" name="correcta" checked={form.respuestaCorrecta === idx} disabled={soloLectura} onChange={() => setForm({ ...form, respuestaCorrecta: idx })} />
               <span className="f-mono" style={{ fontSize: 12, width: 16 }}>{String.fromCharCode(65 + idx)}.</span>
-              <input className="bib-input" disabled={soloLectura} value={op} onChange={(e) => setOpcion(idx, e.target.value)} placeholder={`Opción ${String.fromCharCode(65 + idx)}`} />
+              <input className="bib-input" disabled={soloLectura} value={op} onChange={(e) => setOpcion(idx, e.target.value)} placeholder={`Opcion ${String.fromCharCode(65 + idx)}`} />
             </div>
           ))}
         </div>
@@ -157,11 +190,11 @@ export default function ItemEditorModal({ itemSeed, specs, currentUser, onClose,
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 18 }}>
         <div>
-          <label className="bib-label">Justificación de la respuesta correcta</label>
+          <label className="bib-label">Justificacion de la respuesta correcta</label>
           <textarea className="bib-textarea" disabled={soloLectura} rows={3} value={form.justificacionCorrecta || ""} onChange={(e) => setForm({ ...form, justificacionCorrecta: e.target.value })} />
         </div>
         <div>
-          <label className="bib-label">Por qué los distractores son incorrectos</label>
+          <label className="bib-label">Por que los distractores son incorrectos</label>
           <textarea className="bib-textarea" disabled={soloLectura} rows={3} value={form.justificacionDistractores || ""} onChange={(e) => setForm({ ...form, justificacionDistractores: e.target.value })} />
         </div>
       </div>
@@ -172,7 +205,7 @@ export default function ItemEditorModal({ itemSeed, specs, currentUser, onClose,
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {form.historial.map((h, idx) => (
               <div key={idx} style={{ fontSize: 12, color: "var(--ink-soft)" }}>
-                <span className="f-mono">{h.fecha}</span> — <strong>{h.autor}</strong>: {h.accion}
+                <span className="f-mono">{h.fecha}</span> - <strong>{h.autor}</strong>: {h.accion}
                 {h.comentario && <em> "{h.comentario}"</em>}
               </div>
             ))}
@@ -186,7 +219,7 @@ export default function ItemEditorModal({ itemSeed, specs, currentUser, onClose,
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
           <button className="bib-btn bib-btn-ghost" onClick={onClose}>Cancelar</button>
           <button className="bib-btn bib-btn-primary" disabled={!camposCompletos || guardando} onClick={guardar}>
-            <Save size={14} /> {guardando ? "Guardando…" : esNuevo ? "Guardar como borrador" : "Guardar cambios"}
+            <Save size={14} /> {guardando ? "Guardando..." : esNuevo ? "Guardar como borrador" : "Guardar cambios"}
           </button>
         </div>
       )}

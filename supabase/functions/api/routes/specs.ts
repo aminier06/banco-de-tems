@@ -11,19 +11,27 @@ specsRoutes.get("/", async (c) => {
   return c.json({ specs: await Specs.all() });
 });
 
+// Un area puede tener varias competencias (ej. en Lengua: "Comprension lectora"
+// y "Produccion de textos"), cada una con su propio arbol Afirmacion -> Evidencia -> Tarea.
 specsRoutes.put("/:area", requerirTecnico, async (c) => {
   const area = c.req.param("area");
-  if (!AREA_IDS.includes(area)) return c.json({ error: "Área inválida." }, 400);
+  if (!AREA_IDS.includes(area)) return c.json({ error: "Area invalida." }, 400);
 
   const body = await c.req.json().catch(() => ({}));
-  const { nombre, afirmaciones, tiposTexto } = body;
-  if (!Array.isArray(afirmaciones)) return c.json({ error: "Falta el arreglo de afirmaciones." }, 400);
+  const competencias = Array.isArray(body.competencias) ? body.competencias : null;
+  if (!competencias) return c.json({ error: "Falta el arreglo de competencias." }, 400);
 
-  const sumaAfirmaciones = afirmaciones.reduce((s: number, a: any) => s + Number(a.peso || 0), 0);
-  if (afirmaciones.length > 0 && sumaAfirmaciones !== 100) {
-    return c.json({ error: `Los pesos de las afirmaciones deben sumar 100% (suman ${sumaAfirmaciones}%).` }, 400);
+  for (const comp of competencias) {
+    if (!comp.nombre || !String(comp.nombre).trim()) {
+      return c.json({ error: "Cada competencia necesita un nombre." }, 400);
+    }
+    const afirmaciones = Array.isArray(comp.afirmaciones) ? comp.afirmaciones : [];
+    const suma = afirmaciones.reduce((s: number, a: any) => s + Number(a.peso || 0), 0);
+    if (afirmaciones.length > 0 && suma !== 100) {
+      return c.json({ error: `En "${comp.nombre}": los pesos de las afirmaciones deben sumar 100% (suman ${suma}%).` }, 400);
+    }
   }
 
-  const spec = await Specs.upsert(area, { nombre: nombre || area, afirmaciones, tiposTexto });
+  const spec = await Specs.upsert(area, { competencias });
   return c.json({ spec });
 });

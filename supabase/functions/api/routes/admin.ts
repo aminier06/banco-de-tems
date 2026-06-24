@@ -38,8 +38,11 @@ adminRoutes.post("/seed", async (c) => {
 
   if (!(await Specs.get("lengua"))) {
     await Specs.upsert("lengua", {
-      nombre: "Comprensión lectora en Lengua Española",
-      afirmaciones: [
+      competencias: [
+        {
+          id: "comprension-lectora",
+          nombre: "Comprensión lectora en Lengua Española",
+          afirmaciones: [
         {
           id: "A1",
           texto: "Identifica información literal en el texto.",
@@ -85,16 +88,18 @@ adminRoutes.post("/seed", async (c) => {
           ],
         },
       ],
-      tiposTexto: [
-        { id: "narrativo", texto: "Narrativos y poéticos", peso: 30 },
-        { id: "expositivo", texto: "Expositivos", peso: 30 },
-        { id: "argumentativo", texto: "Argumentativos", peso: 25 },
-        { id: "directivo", texto: "Directivos", peso: 15 },
+          tiposTexto: [
+            { id: "narrativo", texto: "Narrativos y poéticos", peso: 30 },
+            { id: "expositivo", texto: "Expositivos", peso: 30 },
+            { id: "argumentativo", texto: "Argumentativos", peso: 25 },
+            { id: "directivo", texto: "Directivos", peso: 15 },
+          ],
+        },
       ],
     });
   }
   for (const area of ["ciencias_naturaleza", "ciencias_sociales", "matematica"]) {
-    if (!(await Specs.get(area))) await Specs.upsert(area, { nombre: area, afirmaciones: [], tiposTexto: [] });
+    if (!(await Specs.get(area))) await Specs.upsert(area, { competencias: [] });
   }
 
   const autor = usuarios["marisol.tavarez@minerd.gob.do"];
@@ -103,6 +108,7 @@ adminRoutes.post("/seed", async (c) => {
     await Items.create(
       {
         area: "lengua",
+        competenciaId: "comprension-lectora",
         afirmacionId: "A1",
         evidenciaId: "1.2",
         tareaId: "1.2.1",
