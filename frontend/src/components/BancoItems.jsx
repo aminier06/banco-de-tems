@@ -115,6 +115,9 @@ export default function BancoItems({
                 </div>
                 <div style={{ fontSize: 11.5, color: "var(--ink-soft)" }}>Autor/a: {item.autorNombre || "—"}</div>
               </div>
+              {item.imagenUrl && (
+                <img src={item.imagenUrl} alt="" style={{ maxWidth: 160, maxHeight: 110, objectFit: "contain", border: "1px solid var(--rule)", borderRadius: 3, background: "#fff", marginBottom: 8 }} />
+              )}
               <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>{item.enunciado}</p>
               {af && (
                 <p style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 10 }}>

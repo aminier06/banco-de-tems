@@ -31,6 +31,9 @@ export default function TestPreviewModal({ test, items, onClose }) {
                   <p style={{ fontWeight: 600, fontSize: 14, marginBottom: 6 }}>
                     <span className="f-mono">{n}.</span> {it.enunciado}
                   </p>
+                  {it.imagenUrl && (
+                    <img src={it.imagenUrl} alt="" style={{ display: "block", maxWidth: 360, maxHeight: 240, objectFit: "contain", marginBottom: 10, marginLeft: 18 }} />
+                  )}
                   <div style={{ display: "flex", flexDirection: "column", gap: 3, paddingLeft: 18 }}>
                     {it.opciones.map((op, idx) => (
                       <div key={idx} style={{ fontSize: 13 }}>

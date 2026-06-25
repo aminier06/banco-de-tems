@@ -69,6 +69,18 @@ export const api = {
   deleteItem: (id) => request(`/items/${id}`, { method: "DELETE" }),
   importItems: (items, nombreArchivo) =>
     request("/items/import", { method: "POST", body: { items, nombreArchivo } }),
+  uploadImagen: async (archivo) => {
+    const fd = new FormData();
+    fd.append("archivo", archivo);
+    const res = await fetch(`${API_BASE}/items/upload-imagen`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: fd,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+    return data.url;
+  },
 
   // --- pruebas armadas ---
   listTests: () => request("/tests").then((d) => d.tests),

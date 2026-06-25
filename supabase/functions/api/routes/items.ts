@@ -22,6 +22,51 @@ itemsRoutes.get("/", async (c) => {
   return c.json({ items });
 });
 
+const BUCKET = "item-images";
+const LIMITE_BYTES = 5 * 1024 * 1024; // 5 MB
+
+itemsRoutes.post("/upload-imagen", async (c) => {
+  const body = await c.req.parseBody().catch(() => null);
+  const archivo = body ? body["archivo"] : null;
+  if (!(archivo instanceof File)) {
+    return c.json({ error: "No se recibió ningún archivo." }, 400);
+  }
+  if (!archivo.type.startsWith("image/")) {
+    return c.json({ error: "El archivo debe ser una imagen (PNG, JPG, SVG, etc.)." }, 400);
+  }
+  if (archivo.size > LIMITE_BYTES) {
+    return c.json({ error: "La imagen no debe superar 5 MB. Comprímela e inténtalo de nuevo." }, 400);
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceKey) {
+    return c.json({ error: "El almacenamiento de imágenes no está configurado en el servidor." }, 500);
+  }
+
+  const ext = (archivo.name.split(".").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
+  const nombreArchivo = `${crypto.randomUUID()}.${ext}`;
+  const bytes = await archivo.arrayBuffer();
+
+  const subida = await fetch(`${supabaseUrl}/storage/v1/object/${BUCKET}/${nombreArchivo}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${serviceKey}`,
+      "Content-Type": archivo.type,
+    },
+    body: bytes,
+  });
+
+  if (!subida.ok) {
+    const detalle = await subida.text().catch(() => "");
+    console.error("Error subiendo imagen a Storage:", subida.status, detalle);
+    return c.json({ error: "No se pudo subir la imagen. Verifica que el bucket 'item-images' exista." }, 500);
+  }
+
+  const url = `${supabaseUrl}/storage/v1/object/public/${BUCKET}/${nombreArchivo}`;
+  return c.json({ url });
+});
+
 itemsRoutes.post("/", async (c) => {
   const user = c.get("user");
   const b = await c.req.json().catch(() => ({}));
@@ -41,6 +86,7 @@ itemsRoutes.post("/", async (c) => {
       evidenciaId: b.evidenciaId,
       tareaId: b.tareaId,
       competenciaId: b.competenciaId,
+      imagenUrl: b.imagenUrl,
       tipoTexto: b.tipoTexto,
       dificultad: b.dificultad,
       contexto: b.contexto,

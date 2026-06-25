@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { Save } from "lucide-react";
+import { Save, ImagePlus, X } from "lucide-react";
 import { AREAS, DIFICULTADES } from "../lib/constants.js";
 import { contarPalabras } from "../lib/utils.js";
 import { ModalShell, Banner } from "./shared.jsx";
 
-export default function ItemEditorModal({ itemSeed, specs, currentUser, onClose, onSave }) {
+export default function ItemEditorModal({ itemSeed, specs, currentUser, onClose, onSave, onUploadImagen }) {
   const esNuevo = itemSeed.nuevoEnArea !== undefined;
   const base = esNuevo
     ? {
@@ -13,6 +13,7 @@ export default function ItemEditorModal({ itemSeed, specs, currentUser, onClose,
         afirmacionId: "",
         evidenciaId: "",
         tareaId: "",
+        imagenUrl: "",
         tipoTexto: "",
         dificultad: "Media",
         contexto: "",
@@ -31,6 +32,8 @@ export default function ItemEditorModal({ itemSeed, specs, currentUser, onClose,
   const [form, setForm] = useState(base);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
+  const [subiendoImagen, setSubiendoImagen] = useState(false);
+  const [errorImagen, setErrorImagen] = useState("");
 
   const soloLectura =
     !esNuevo &&
@@ -67,6 +70,19 @@ export default function ItemEditorModal({ itemSeed, specs, currentUser, onClose,
     const next = [...form.opciones];
     next[idx] = val;
     setForm({ ...form, opciones: next });
+  };
+
+  const subirImagen = async (archivo) => {
+    setErrorImagen("");
+    setSubiendoImagen(true);
+    try {
+      const url = await onUploadImagen(archivo);
+      setForm({ ...form, imagenUrl: url });
+    } catch (err) {
+      setErrorImagen(err.message || "No se pudo subir la imagen.");
+    } finally {
+      setSubiendoImagen(false);
+    }
   };
 
   const guardar = async () => {
@@ -168,6 +184,38 @@ export default function ItemEditorModal({ itemSeed, specs, currentUser, onClose,
         <label className="bib-label">Contexto (texto base, opcional pero recomendado - max. ~350 palabras) - {palabras} palabra(s)</label>
         <textarea className="bib-textarea" disabled={soloLectura} rows={5} value={form.contexto || ""} onChange={(e) => setForm({ ...form, contexto: e.target.value })} placeholder="Texto autosuficiente sobre el que se basa la pregunta..." />
         {palabras > 350 && <div style={{ color: "var(--red)", fontSize: 11.5, marginTop: 4 }}>El texto supera las 350 palabras recomendadas.</div>}
+      </div>
+
+      <div style={{ marginBottom: 14 }}>
+        <label className="bib-label">Imagen (mapa, grafico o ilustracion - opcional, maximo 5 MB)</label>
+        {form.imagenUrl ? (
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <img src={form.imagenUrl} alt="Imagen del item" style={{ maxWidth: 240, maxHeight: 160, objectFit: "contain", border: "1px solid var(--rule)", borderRadius: 3, background: "#fff" }} />
+            {!soloLectura && (
+              <button className="bib-btn bib-btn-ghost" style={{ color: "var(--red)" }} onClick={() => setForm({ ...form, imagenUrl: "" })}>
+                <X size={13} /> Quitar imagen
+              </button>
+            )}
+          </div>
+        ) : (
+          !soloLectura && (
+            <label className="bib-btn bib-btn-ghost" style={{ display: "inline-flex", cursor: subiendoImagen ? "default" : "pointer" }}>
+              <ImagePlus size={14} /> {subiendoImagen ? "Subiendo..." : "Subir imagen"}
+              <input
+                type="file"
+                accept="image/*"
+                disabled={subiendoImagen}
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  const archivo = e.target.files?.[0];
+                  if (archivo) subirImagen(archivo);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          )
+        )}
+        {errorImagen && <div style={{ color: "var(--red)", fontSize: 11.5, marginTop: 4 }}>{errorImagen}</div>}
       </div>
 
       <div style={{ marginBottom: 14 }}>

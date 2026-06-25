@@ -325,7 +325,7 @@ export default function App() {
       </main>
 
       {editingItem && (
-        <ItemEditorModal itemSeed={editingItem} specs={specs} currentUser={currentUser} onClose={() => setEditingItem(null)} onSave={guardarItem} />
+        <ItemEditorModal itemSeed={editingItem} specs={specs} currentUser={currentUser} onClose={() => setEditingItem(null)} onSave={guardarItem} onUploadImagen={api.uploadImagen} />
       )}
 
       {reviewingItem && <RevisionModal item={reviewingItem} onClose={() => setReviewingItem(null)} onDecidir={decidirRevision} />}
