@@ -25,6 +25,25 @@ itemsRoutes.get("/", async (c) => {
 const BUCKET = "item-images";
 const LIMITE_BYTES = 5 * 1024 * 1024; // 5 MB
 
+// Supabase está migrando del service_role clásico (un JWT) a las nuevas
+// "secret keys" (sb_secret_..., ya no son un JWT). Probamos primero el
+// sistema nuevo y, si no existe, usamos el clásico. Storage ya no acepta
+// las llaves nuevas en el header Authorization por sí solas: hay que
+// enviarlas también en el header "apikey".
+function obtenerClaveDeServicio(): string | null {
+  const secretKeysJson = Deno.env.get("SUPABASE_SECRET_KEYS");
+  if (secretKeysJson) {
+    try {
+      const dict = JSON.parse(secretKeysJson);
+      const primera = Object.values(dict)[0];
+      if (typeof primera === "string" && primera) return primera;
+    } catch {
+      // Si no se puede interpretar, seguimos con el respaldo de abajo.
+    }
+  }
+  return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || null;
+}
+
 itemsRoutes.post("/upload-imagen", async (c) => {
   const body = await c.req.parseBody().catch(() => null);
   const archivo = body ? body["archivo"] : null;
@@ -39,7 +58,7 @@ itemsRoutes.post("/upload-imagen", async (c) => {
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const serviceKey = obtenerClaveDeServicio();
   if (!supabaseUrl || !serviceKey) {
     return c.json({ error: "El almacenamiento de imágenes no está configurado en el servidor." }, 500);
   }
@@ -51,6 +70,7 @@ itemsRoutes.post("/upload-imagen", async (c) => {
   const subida = await fetch(`${supabaseUrl}/storage/v1/object/${BUCKET}/${nombreArchivo}`, {
     method: "POST",
     headers: {
+      apikey: serviceKey,
       Authorization: `Bearer ${serviceKey}`,
       "Content-Type": archivo.type,
     },
